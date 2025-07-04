@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+      <title> Ram Bot </title> Ram bot
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.3/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1e1e1e;
+            color: #f5f5f5;
+        }
+        .input-field {
+            background-color: #282828;
+            color: #f5f5f5;
+        }
+        .input-field:focus {
+            border-color: #4A5568;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from {transform: rotate(0deg);}
+            to {transform: rotate(360deg);}
+        }
+    </style>
+    <title>Responsive AI Chatbot</title>
+</head>
+<body class="h-screen flex items-center justify-center">
+    <div id="chatbot" class="w-full max-w-md mx-auto border rounded-lg p-4 bg-gray-900 text-white shadow-lg">
+        <div id="chat-window" class="overflow-y-auto h-80 mb-4 rounded-lg p-2 bg-gray-800">
+            <!-- Chat messages go here -->
+        </div>
+        <div class="relative">
+            <input type="text" id="input-field" class="w-full px-3 py-2 rounded-lg input-field" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+            <div id="spinner" class="absolute right-0 top-0 mt-2 mr-3 hidden spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            async function callAIResponseAPI(message) {
+                const spinner = document.getElementById('spinner');
+                const chatWindow = document.getElementById('chat-window');
+                const userBubble = document.createElement('div');
+                userBubble.className = "mb-2 p-2 rounded-md bg-indigo-500 text-white";
+                userBubble.textContent = message;
+                chatWindow.appendChild(userBubble);
+
+                const aiBubble = document.createElement('div');
+                aiBubble.className = "mb-2 p-2 rounded-md bg-gray-700 text-white";
+                chatWindow.appendChild(aiBubble);
+
+                spinner.classList.remove('hidden');
+
+                try {
+                    const response = await fetch("https://backend.buildpicoapps.com/aero/run/llm-api?pk=v1-Z0FBQUFBQm9aOW9RckJSWUFvekh6aUNaajI5NktkYVFUSnlWUHROYkVBanBDYXI2Zm1xY3VIRWhCemllc2RURXNyVWM1V3hScWVSWXZkOWY0VUxKdXdOQy04Zl9nWnp1N0E9PQ==", {
+                        method: 'POST',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ prompt: message })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        aiBubble.textContent = data.text;
+                    } else {
+                        aiBubble.textContent = "Error handling request. Please try again.";
+                        console.error("Error:", data);
+                    }
+                } catch (error) {
+                    aiBubble.textContent = "Network error. Please try again later.";
+                    console.error("Fetch error:", error);
+                } finally {
+                    spinner.classList.add('hidden');
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+            }
+
+            async function callImageGenerationAPI(prompt) {
+                const spinner = document.getElementById('spinner');
+                const chatWindow = document.getElementById('chat-window');
+                const userBubble = document.createElement('div');
+                userBubble.className = "mb-2 p-2 rounded-md bg-indigo-500 text-white";
+                userBubble.textContent = prompt;
+                chatWindow.appendChild(userBubble);
+
+                const aiBubble = document.createElement('div');
+                aiBubble.className = "mb-2 p-2 rounded-md bg-gray-700 text-white";
+                chatWindow.appendChild(aiBubble);
+
+                spinner.classList.remove('hidden');
+
+                try {
+                    const response = await fetch("https://backend.buildpicoapps.com/aero/run/image-generation-api?pk=v1-Z0FBQUFBQm9aOXFHOU5BNG1KYjhkdWxNNTBsVzdibl82SF9ZQldMbVNTdGIyemdqV3hfSUNxSjNiYWRFN0V3aTNBVFN2UzZBMTc0dXdoRjZyd0hJcWotYXJsWEtaMHE2Nmc9PQ==", {
+                        method: 'POST',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ prompt: prompt })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'success' && data.imageUrl) {
+                        const image = document.createElement('img');
+                        image.src = data.imageUrl;
+                        image.className = "rounded-md mt-2";
+                        aiBubble.appendChild(image);
+                    } else {
+                        aiBubble.textContent = "Error handling image request. Please try again.";
+                        console.error("Error:", data);
+                    }
+                } catch (error) {
+                    aiBubble.textContent = "Network error. Please try again later.";
+                    console.error("Fetch error:", error);
+                } finally {
+                    spinner.classList.add('hidden');
+                    chatWindow.scrollTop = chatWindow.scrollHeight;
+                }
+            }
+
+            window.handleKeyPress = function(event) {
+                if (event.key === 'Enter') {
+                    const inputField = document.getElementById('input-field');
+                    const userInput = inputField.value;
+                    if (userInput.trim() !== '') {
+                        // Decide between text and image generation based on command keyword
+                        if (userInput.toLowerCase().startsWith("generate image")) {
+                            const prompt = userInput.replace(/generate image/gi, "").trim();
+                            if (prompt !== '') {
+                                callImageGenerationAPI(prompt);
+                            }
+                        } else {
+                            callAIResponseAPI(userInput);
+                        }
+                        inputField.value = '';
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
